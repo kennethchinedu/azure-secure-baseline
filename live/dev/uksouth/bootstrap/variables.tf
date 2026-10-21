@@ -1,9 +1,3 @@
-
-variable "subscription_id" {
-  description = "Azure subscription ID"
-  type        = string
-}
-
 variable "location" {
   description = "Azure region for the Terraform state resources"
   type        = string
@@ -13,13 +7,11 @@ variable "location" {
 variable "resource_group_name" {
   description = "Resource group containing the Terraform state storage"
   type        = string
-
 }
 
 variable "storage_account_name" {
   description = "Globally unique Azure storage account name (3-24 lowercase letters and numbers)"
   type        = string
-
 }
 
 variable "account_replication_type" {

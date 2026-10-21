@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars (gitignored). The subscription comes from ARM_SUBSCRIPTION_ID.
+resource_group_name       = "rg-tfstate-uks-example"
+storage_account_name      = "examplestate001"
+location                  = "UK South"
+account_replication_type  = "LRS"
+state_file_retention_days = 30
+container_retention_days  = 30
