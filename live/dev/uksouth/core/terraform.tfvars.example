@@ -1,0 +1,6 @@
+allowed_ip_ranges = ["203.0.113.10"]
+
+# Optional. Prefer group membership; use this only for one-off grants.
+# extra_secrets_officers = {
+#   break_glass = "00000000-0000-0000-0000-000000000000"
+# }
