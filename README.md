@@ -13,10 +13,12 @@ It is the Azure counterpart of [aws-estate-project](https://github.com/kennethch
 |---|---|---|
 | Remote state | Storage account with shared keys off (Entra ID + RBAC only), TLS 1.2, no public blobs, versioning, 30-day soft delete | |
 | Network | VNet `10.30.0.0/16`, private subnets (no default outbound), one NSG per subnet, default-deny rules | NSG flow logs |
-| Secrets | | Key Vault (RBAC, public access off) + Private Endpoint + private DNS zone |
-| Workload | | VM with managed identity reading the secret over the endpoint |
+| Secrets | Key Vault (RBAC, firewall deny + operator IP, no trusted-service bypass), Secrets Officer via an Entra group; Private Endpoint in `snet-pe` + `privatelink.vaultcore.azure.net` linked to the VNet | Public access off (the endpoint path is proven, TEST-LOG 9–10) |
+| Workload | VM in `snet-app` (no public IP, trusted launch) whose system-assigned identity reads a secret through the private endpoint as Key Vault Secrets User; no stored credential (TEST-LOG 9–10) | |
 | CI/CD | | GitHub Actions → Entra workload identity federation (OIDC), plan on PR, apply from `main` |
 | Posture | | Defender for Cloud recommendations reviewed |
+
+**Stack state:** `core` is destroyed at the end of each session (cost); `bootstrap` (state storage) stays.
 
 ## Layout
 
@@ -27,9 +29,12 @@ applied: one folder per environment, region and stack, each a root module with i
 modules/
   state-storage/     storage account + private container for Terraform state, Entra-only access
   network/           VNet, subnets, one NSG per subnet (created empty) and its association
+  key-vault/         Key Vault (RBAC, firewall) and its Secrets Officer / Secrets User role assignments
+  private-endpoint/  private endpoint for one sub-resource, optional DNS zone group
 live/dev/uksouth/
   bootstrap/         the state storage itself (state migrated into it after the first apply)
-  core/              application resource group, network, and the NSG rules (nsg-rules.tf)
+  core/              application resource group, network, NSG rules (nsg-rules.tf), Key Vault and
+                     its endpoint, private DNS (dns.tf), the officers group (identity.tf)
 docs/
   aws-azure-map.md   each control and its AWS equivalent
 DECISIONS.md         design decisions and known gaps

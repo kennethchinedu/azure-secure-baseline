@@ -10,3 +10,8 @@ variable "extra_secrets_officers" {
   type        = map(string)
   default     = {}
 }
+
+variable "vm_admin_ssh_public_key" {
+  description = "SSH public key for the workload VM's admin user (set in gitignored terraform.tfvars)."
+  type        = string
+}

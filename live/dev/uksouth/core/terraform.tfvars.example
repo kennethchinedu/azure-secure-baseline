@@ -4,3 +4,5 @@ allowed_ip_ranges = ["203.0.113.10"]
 # extra_secrets_officers = {
 #   break_glass = "00000000-0000-0000-0000-000000000000"
 # }
+
+vm_admin_ssh_public_key = "ssh-ed25519 AAAA... azure-lab-vm"

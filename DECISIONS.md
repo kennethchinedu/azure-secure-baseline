@@ -12,6 +12,11 @@
 | `VirtualNetwork` tag avoided in allows | Allows name subnet ranges from `locals.tf` | The tag also covers peered VNets and on-premises ranges behind a gateway | |
 | NSG rules as separate resources | Module creates empty NSGs; each rule is an `azurerm_network_security_rule` in the stack; never inline `security_rule` blocks too | One readable block per rule, reviewable in a PR diff; mixing both styles makes each apply overwrite the other. Trade-off: no plan-time validation of priorities (Azure rejects duplicates at apply) | TEST-LOG 6 |
 | Refactor with `moved` and `import` blocks | `moved` blocks re-addressed resources into the modules; `import` blocks adopted the six rules that already existed inside the NSGs. Both files were deleted once applied (state records the new addresses) | Live resources were never destroyed and recreated: 0 to add, 0 to change, 0 to destroy; both stacks plan **No changes** without the files | TEST-LOG 6 |
+| Private endpoint as its own module | `modules/private-endpoint`: one endpoint, one sub-resource (validated), DNS zone group optional | Reusable for the state storage account (`blob`, gap 2). The zone group is skipped when records are managed centrally (Azure Policy in a hub), so Terraform and the policy don't overwrite each other | |
+| Private DNS zones in the stack | `privatelink.vaultcore.azure.net` and its VNet link in `core/dns.tf`, not in a module | One zone per service per VNet, shared by every endpoint of that service; a module creating its own zone would collide on its second use | |
+| Network policies on the endpoint subnet | `private_endpoint_network_policies = "Enabled"` on `snet-pe` | Default `Disabled` makes the subnet's NSG and route table ignore endpoint traffic: `nsg-pe` would filter nothing, and an endpoint's /32 route would bypass a firewall UDR | |
+| Secret values not in Terraform | The vault and its access are Terraform; secret values are set by their owner (`az keyvault secret set`, later the app or rotation) | A secret resource stores its value in state, and Terraform would read it over the data plane, so every plan from outside the VNet would fail once public access is off | |
+| Workload VM | `modules/linux-vm`: private NIC only, system-assigned identity, trusted launch, `Standard_D2as_v4` | The identity lives and dies with the VM; Secrets User at vault scope only. B1s had no capacity in UK South and Basv2 had zero quota on this subscription | |
 
 ## Known gaps
 
@@ -20,3 +25,4 @@
 3. **Single operator identity.** The human operator holds Owner on the subscription; CI will use a federated identity with narrower roles. Production would grant Owner just-in-time through PIM.
 4. **No resource locks** on the state storage. A `CanNotDelete` lock is the production setting.
 5. **Repo hygiene:** no branch ruleset and no CI checks (fmt, validate, tflint, Checkov) yet.
+6. **Key Vault public access still on** (operator IP only). It goes off once a workload in `snet-app` reads a secret through the endpoint; until then the endpoint path is unproven.

@@ -28,11 +28,12 @@ module "network" {
       name             = "snet-pe"
       address_prefixes = local.subnet_cidrs.pe
       nsg_name         = "nsg-pe-${local.name_suffix}"
+
+      # Default is Disabled: the subnet's NSG and route table then ignore endpoint traffic.
+      private_endpoint_network_policies = "Enabled"
     }
   }
 }
-
-
 
 module "key_vault" {
   source = "../../../../modules/key-vault"
@@ -52,6 +53,28 @@ module "key_vault" {
     },
     var.extra_secrets_officers, # break-glass or one-off grants, from gitignored terraform.tfvars
   )
+
+  # Read-only: the workload reads its secret, never manages the vault.
+  secrets_users = {
+    workload_vm = module.workload_vm.principal_id
+  }
+
+  tags = local.tags
+}
+
+# The vault's private IP in snet-pe. Public access stays on (operator IP only) until the
+# workload VM can reach the vault through this endpoint.
+module "key_vault_private_endpoint" {
+  source = "../../../../modules/private-endpoint"
+
+  name                = "pe-kv-app-${local.name_suffix}"
+  resource_group_name = azurerm_resource_group.app.name
+  location            = azurerm_resource_group.app.location
+  subnet_id           = module.network.subnet_ids["pe"]
+
+  resource_id          = module.key_vault.id
+  subresource_names    = ["vault"]
+  private_dns_zone_ids = [azurerm_private_dns_zone.key_vault.id]
 
   tags = local.tags
 }
